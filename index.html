@@ -1,155 +1,62 @@
-<!doctype html>
-<html lang="ar" dir="rtl">
+<!DOCTYPE html>
+<html lang="ar">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>🤖 Vivk AI</title>
+  <meta charset="UTF-8">
+  <title>Vivk AI</title>
   <style>
-    :root{--bg:#0d0f12;--card:#14181d;--text:#e9f0f3;--sub:#a9b7c0;--accent:#00e676;--muted:#2a3138;}
-    *{box-sizing:border-box;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;}
-    body{margin:0;background:var(--bg);color:var(--text);}
-    header{padding:22px 16px;text-align:center;border-bottom:1px solid var(--muted);}
-    header h1{margin:0;font-size:28px}
-    header .sub{color:var(--sub);font-size:14px;margin-top:6px}
-    .wrap{max-width:900px;margin:0 auto;padding:16px}
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:10px 0 14px}
-    select,button,input,textarea{
-      background:var(--card);color:var(--text);border:1px solid var(--muted);border-radius:10px;outline:none;
-    }
-    select,button{height:40px;padding:0 12px}
-    button{background:var(--accent);color:#04140a;border:none;font-weight:700;cursor:pointer}
-    button:disabled{opacity:.65;cursor:not-allowed}
-    .mode{display:flex;gap:8px;align-items:center}
-    .chat{background:var(--card);border:1px solid var(--muted);border-radius:14px;min-height:360px;padding:14px;display:flex;flex-direction:column;gap:10px}
-    .msg{max-width:85%;padding:12px 14px;border-radius:14px;line-height:1.6;white-space:pre-wrap}
-    .me{align-self:flex-end;background:#0f1c12;border:1px solid #15361f}
-    .ai{align-self:flex-start;background:#10151b;border:1px solid #1c2833}
-    .inputRow{display:flex;gap:8px;margin-top:12px}
-    .inputRow textarea{flex:1;min-height:46px;max-height:180px;padding:10px;resize:vertical}
-    .imgBox{margin-top:10px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
-    .imgBox img{width:100%;border-radius:12px;border:1px solid var(--muted);background:#000}
-    footer{color:var(--sub);text-align:center;font-size:12px;margin:24px 0}
-    .hint{color:var(--sub);font-size:13px}
+    body { font-family: Arial, sans-serif; text-align: center; margin: 40px; }
+    #chat { max-width: 600px; margin: auto; }
+    textarea { width: 100%; height: 80px; margin: 10px 0; }
+    button { padding: 10px 20px; }
+    .message { text-align: left; margin: 10px 0; padding: 10px; border-radius: 5px; }
+    .user { background: #d1e7dd; }
+    .bot { background: #f8d7da; }
   </style>
 </head>
 <body>
-  <header>
-    <h1>🤖 Vivk AI</h1>
-    <div class="sub">مساعد نصّي وتوليد صور من النص – سريع وخفيف</div>
-  </header>
+  <h1>🤖 مرحباً بك في Vivk AI</h1>
+  <div id="chat"></div>
+  
+  <textarea id="input" placeholder="اكتب رسالتك هنا..."></textarea><br>
+  <button onclick="sendMessage()">إرسال</button>
 
-  <div class="wrap">
-    <div class="toolbar">
-      <div class="mode">
-        <label for="task">الوضع:</label>
-        <select id="task">
-          <option value="chat">محادثة نصية</option>
-          <option value="image">توليد صورة</option>
-        </select>
-      </div>
-      <div class="hint">لا تحفظ مفاتيحك في الواجهة؛ المفتاح في متغيرات بيئة Vercel ✅</div>
-    </div>
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("input");
+      const chat = document.getElementById("chat");
+      const userMessage = input.value.trim();
+      if (!userMessage) return;
 
-    <div id="chatBox" class="chat" aria-live="polite"></div>
+      // عرض رسالة المستخدم
+      const userDiv = document.createElement("div");
+      userDiv.className = "message user";
+      userDiv.textContent = "🧑: " + userMessage;
+      chat.appendChild(userDiv);
 
-    <div class="imgBox" id="imgBox" hidden></div>
+      input.value = "";
 
-    <div class="inputRow">
-      <textarea id="prompt" placeholder="اكتب رسالتك أو وصف الصورة…"></textarea>
-      <button id="send">إرسال</button>
-    </div>
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: userMessage })
+        });
+        const data = await res.json();
 
-    <footer>© 2025 Vivk</footer>
-  </div>
+        // عرض رد الذكاء الاصطناعي
+        const botDiv = document.createElement("div");
+        botDiv.className = "message bot";
+        botDiv.textContent = "🤖: " + (data.reply || "خطأ في الرد");
+        chat.appendChild(botDiv);
 
-<script>
-const taskSel = document.getElementById('task');
-const promptEl = document.getElementById('prompt');
-const sendBtn = document.getElementById('send');
-const chatBox = document.getElementById('chatBox');
-const imgBox  = document.getElementById('imgBox');
-
-function addMsg(text, who='ai'){
-  const b = document.createElement('div');
-  b.className = 'msg ' + (who==='me'?'me':'ai');
-  b.textContent = text;
-  chatBox.appendChild(b);
-  chatBox.scrollTop = chatBox.scrollHeight;
-}
-
-taskSel.addEventListener('change', () => {
-  const isImage = taskSel.value === 'image';
-  imgBox.hidden = !isImage;
-  if (isImage) addMsg('🔄 وضع الصور مُفعّل. صف الصورة التي تريدها.', 'ai');
-});
-
-async function callChat(message){
-  const r = await fetch('/api/chat', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ message })
-  });
-  if(!r.ok){ throw new Error('Chat API error'); }
-  const data = await r.json();
-  return data.reply || '…';
-}
-
-async function callImage(prompt){
-  const r = await fetch('/api/image', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ prompt })
-  });
-  if(!r.ok){ throw new Error('Image API error'); }
-  const data = await r.json();
-  return data.images || []; // array of data URLs
-}
-
-sendBtn.addEventListener('click', async () => {
-  const t = promptEl.value.trim();
-  if(!t) return;
-  const isImage = taskSel.value === 'image';
-
-  sendBtn.disabled = true;
-
-  if (isImage) {
-    addMsg('🖼️ جاري توليد الصورة…', 'ai');
-    try{
-      const imgs = await callImage(t);
-      const holder = document.createElement('div');
-      holder.className = 'msg me'; holder.textContent = t;
-      chatBox.appendChild(holder);
-      // عرض الصور
-      imgBox.innerHTML = '';
-      imgs.forEach(src => {
-        const im = document.createElement('img');
-        im.src = src;
-        imgBox.appendChild(im);
-      });
-      addMsg('تم ✨', 'ai');
-    }catch(e){
-      addMsg('حدث خطأ أثناء توليد الصورة.', 'ai');
-      console.error(e);
-    }finally{
-      sendBtn.disabled = false; promptEl.value='';
+      } catch (err) {
+        console.error(err);
+        const botDiv = document.createElement("div");
+        botDiv.className = "message bot";
+        botDiv.textContent = "⚠️ حدث خطأ في الاتصال بالخادم.";
+        chat.appendChild(botDiv);
+      }
     }
-    return;
-  }
-
-  // محادثة
-  addMsg(t, 'me');
-  addMsg('✍️ يفكّر…', 'ai');
-  try{
-    const reply = await callChat(t);
-    // استبدال آخر فقاعة "يفكّر" بالرد:
-    chatBox.lastChild.textContent = reply;
-  }catch(e){
-    chatBox.lastChild.textContent = 'حدث خطأ. تأكد من النشر ووجود المفتاح.';
-    console.error(e);
-  }finally{
-    sendBtn.disabled = false; promptEl.value='';
-  }
-});
-</script>
+  </script>
 </body>
 </html>
